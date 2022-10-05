@@ -1,27 +1,27 @@
 #include "cell.h"
 #include <QPainter>
 #include <QStyleOptionGraphicsItem>
+#include <QDebug>
 
-Cell::Cell(int my_x, int my_y, bool at_the_edge, qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent, QObject *qobject_parent) : QObject(qobject_parent), QGraphicsRectItem(x, y, width, height, parent)
+Cell::Cell(int my_x, int my_y, qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent, QObject *qobject_parent) : QObject(qobject_parent), QGraphicsRectItem(x, y, width, height, parent)
 {
     m_my_x = my_x;
     m_my_y = my_y;
-    m_at_the_edge = at_the_edge;
-    m_alive_neighbors_count = 0;
 
     setAcceptHoverEvents(true);
     m_color.setNamedColor("#d3d3d3");
-    m_alive_value = -1;
+
+    m_alive_neighbors_count = 0;
+    m_is_alive = false;
 }
 
-bool Cell::isAtTheEdge()
+bool Cell::isAlive()
 {
-    return m_at_the_edge;
-}
-
-int Cell::aliveValue()
-{
-    return m_alive_value;
+    if(!m_is_alive){
+        m_alive_neighbors_count++;
+        emit cellIsImplicated(this);
+    }
+    return m_is_alive;
 }
 
 int Cell::cellX()
@@ -34,37 +34,42 @@ int Cell::cellY()
     return m_my_y;
 }
 
+void Cell::addNeighborCell(Cell *neighbor)
+{
+    if(neighbor != nullptr)
+        m_neighbor_cells.append(neighbor);
+}
+
+void Cell::checkNeighbors()
+{
+    if(!m_neighbor_cells.isEmpty()){
+        for(int i = 0; i < m_neighbor_cells.length(); i++){
+            if(m_neighbor_cells.at(i)->isAlive()){
+                m_alive_neighbors_count++;
+            }
+        }
+    }
+}
+
 void Cell::updateCellState()
 {
+    if(m_is_alive && (m_alive_neighbors_count < 2 || m_alive_neighbors_count > 3))
+        m_is_alive = false;
+    else if(m_is_alive && (m_alive_neighbors_count == 2 || m_alive_neighbors_count == 3))
+        m_is_alive = true;
+    else if(!m_is_alive && m_alive_neighbors_count == 3)
+        m_is_alive = true;
 
-    if(m_alive_value == 1){
-        m_alive_value = -1;
-        m_color.setNamedColor("#d3d3d3");
-    }
-    else if(m_alive_value == -1){
-        m_alive_value = 1;
+    if(m_is_alive){
         m_color.setNamedColor("#000000");
-    }
-
-    update(boundingRect());
-}
-
-void Cell::registerNeighborsStateChange(int alive_value)
-{
-    m_alive_neighbors_count += alive_value;
-}
-
-bool Cell::checkUpdateNeed()
-{
-    if(m_alive_value == -1 && m_alive_neighbors_count == 3){
-        return  true;
-    }
-    else if(m_alive_value == 1 && (m_alive_neighbors_count < 2 || m_alive_neighbors_count > 3)){
-        return true;
+        emit cellIsAlive(this, m_is_alive);
     }
     else{
-        return false;
+        m_color.setNamedColor("#d3d3d3");
     }
+
+    m_alive_neighbors_count = 0;
+    update(boundingRect());
 }
 
 void Cell::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
@@ -99,11 +104,13 @@ void Cell::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     if(m_color.name() == "#000000" || m_color.name() == "#00008b"){
         m_color.setNamedColor("#d3d3d3");
-        emit updateNeeded(this, false);
+        m_is_alive = false;
+        emit cellIsAlive(this, m_is_alive);
     }
     else if(m_color.name() == "#808080" || m_color.name() == "#d3d3d3"){
-        m_color.setNamedColor("#000000");
-        emit updateNeeded(this, true);
+        m_color.setNamedColor("#000000");       
+        m_is_alive = true;
+        emit cellIsAlive(this, m_is_alive);
     }
 
     update(boundingRect());

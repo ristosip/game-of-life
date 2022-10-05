@@ -18,13 +18,16 @@ public slots:
 
 private:
     void clearScene();
+    void linkNeighbors(Cell *cell, int columns_max, int rows_max);
 
 private slots:
-    void manageCellUpdateList(Cell* cell, bool updateNeeded);
+    void manageAliveCellList(Cell* cell, bool isAlive);
+    void manageImplicatedCellList(Cell* cell);
 
 private:
     QList<QList<Cell*>*> m_cell_list_list;
-    QList<Cell*> m_cells_to_be_updated_list;
+    QList<Cell*> m_alive_cells_list;
+    QList<Cell*> m_implicated_cells_list;
     bool m_initializing;
 };
 

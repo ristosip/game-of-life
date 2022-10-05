@@ -15,16 +15,23 @@ void GraphicsScene::populateScene(int columns, int rows)
         QList<Cell*> *cellList = new QList<Cell*>();
         m_cell_list_list.append(cellList);
         for(int j = 0; j < rows; j++){
-            bool at_the_edge = false;
-            if(i == 0 || i == columns - 1 || j == 0 || j == rows - 1)
-                at_the_edge = true;
-            Cell *cell = new Cell(i, j, at_the_edge);
+            Cell *cell = new Cell(i, j);
             addItem(cell);
             cell->setPos(10 * i, 10 * j);
             cellList->append(cell);
-            connect(cell, &Cell::updateNeeded, this, &GraphicsScene::manageCellUpdateList);
+
+            connect(cell, &Cell::cellIsAlive, this, &GraphicsScene::manageAliveCellList);
+            connect(cell, &Cell::cellIsImplicated, this, &GraphicsScene::manageImplicatedCellList);
         }
     }
+
+    for(int i = 0; i < columns; i++){
+        for(int j = 0; j < rows; j++){
+            Cell *currentCell = m_cell_list_list.at(i)->at(j);
+            linkNeighbors(currentCell, columns, rows);
+        }
+    }
+
     m_initializing = false;
 }
 
@@ -37,161 +44,55 @@ void GraphicsScene::clearScene()
             delete cell;
         }
     }
-    m_cell_list_list.clear();
-    m_cells_to_be_updated_list.clear();
+    m_cell_list_list.clear();   
+    m_alive_cells_list.clear();
+    m_implicated_cells_list.clear();
 }
 
-void GraphicsScene::manageCellUpdateList(Cell* cell, bool updateNeeded)
+void GraphicsScene::linkNeighbors(Cell *cell, int columns, int rows)
 {
-    if(updateNeeded){
-        if(!m_cells_to_be_updated_list.contains(cell))
-            m_cells_to_be_updated_list.append(cell);
+    for(int i = cell->cellX() - 1; i <= cell->cellX() + 1; i++){
+        for(int j = cell->cellY() - 1; j <= cell->cellY() + 1; j++){
+            if(i >= 0 && i < columns && j >= 0 && j < rows){
+                Cell *neighbor = m_cell_list_list.at(i)->at(j);
+                if(neighbor != cell){
+                    cell->addNeighborCell(neighbor);
+                }
+            }
+        }
+    }
+}
+
+void GraphicsScene::manageAliveCellList(Cell* cell, bool isAlive)
+{
+    if(isAlive){
+        if(!m_alive_cells_list.contains(cell))
+            m_alive_cells_list.append(cell);
     }
     else{
-        m_cells_to_be_updated_list.removeOne(cell);
+        m_alive_cells_list.removeOne(cell);
     }
 }
 
+void GraphicsScene::manageImplicatedCellList(Cell* cell)
+{
+    if(!m_implicated_cells_list.contains(cell))
+        m_implicated_cells_list.append(cell);
+}
 
 void GraphicsScene::advanceGame()
 {
-    QList<Cell*> temp_list = m_cells_to_be_updated_list;
-    m_cells_to_be_updated_list.clear();
-
-    // update cell states and inform the neightbors
+    QList<Cell*> temp_list = m_alive_cells_list;
+    m_alive_cells_list.clear();
     for(int i = 0; i < temp_list.length(); i++){
-
-        Cell *cell = temp_list.at(i);
-        cell->updateCellState();
-
-        if(!cell->isAtTheEdge()){
-            int x = cell->cellX();
-            int y = cell->cellY();
-            int alive_value = cell->aliveValue();
-
-            m_cell_list_list.at(x-1)->at(y-1)->registerNeighborsStateChange(alive_value);
-            m_cell_list_list.at(x)->at(y-1)->registerNeighborsStateChange(alive_value);
-            m_cell_list_list.at(x+1)->at(y-1)->registerNeighborsStateChange(alive_value);
-
-            m_cell_list_list.at(x-1)->at(y)->registerNeighborsStateChange(alive_value);
-            m_cell_list_list.at(x+1)->at(y)->registerNeighborsStateChange(alive_value);
-
-            m_cell_list_list.at(x-1)->at(y+1)->registerNeighborsStateChange(alive_value);
-            m_cell_list_list.at(x)->at(y+1)->registerNeighborsStateChange(alive_value);
-            m_cell_list_list.at(x+1)->at(y+1)->registerNeighborsStateChange(alive_value);
-        }
-        else{
-            int x = cell->cellX();
-            int y = cell->cellY();
-            int alive_value = cell->aliveValue();
-
-            if(!(x-1 < 0 || y-1 < 0))
-                m_cell_list_list.at(x-1)->at(y-1)->registerNeighborsStateChange(alive_value);
-            if(!(y-1 < 0))
-                m_cell_list_list.at(x)->at(y-1)->registerNeighborsStateChange(alive_value);
-            if(!(x+1 > m_cell_list_list.length() - 1 || y-1 < 0))
-                m_cell_list_list.at(x+1)->at(y-1)->registerNeighborsStateChange(alive_value);
-
-            if(!(x-1 < 0))
-                m_cell_list_list.at(x-1)->at(y)->registerNeighborsStateChange(alive_value);
-            if(!(x+1 > m_cell_list_list.length() - 1))
-                m_cell_list_list.at(x+1)->at(y)->registerNeighborsStateChange(alive_value);
-
-            if(!(x-1 < 0 || y+1 > m_cell_list_list.at(0)->length() - 1))
-                m_cell_list_list.at(x-1)->at(y+1)->registerNeighborsStateChange(alive_value);
-            if(!(y+1 > m_cell_list_list.at(0)->length() - 1))
-                m_cell_list_list.at(x)->at(y+1)->registerNeighborsStateChange(alive_value);
-            if(!(x+1 > m_cell_list_list.length() - 1 || y+1 > m_cell_list_list.at(0)->length() - 1))
-                m_cell_list_list.at(x+1)->at(y+1)->registerNeighborsStateChange(alive_value);
-        }
+        temp_list.at(i)->checkNeighbors();
     }
-
-    // check the update-needs in the new situation
     for(int i = 0; i < temp_list.length(); i++){
-
-        Cell *cell = temp_list.at(i);
-
-        if(cell->checkUpdateNeed()){
-            manageCellUpdateList(cell, true);
-        }
-
-        if(!cell->isAtTheEdge()){
-            int x = cell->cellX();
-            int y = cell->cellY();
-
-            if(m_cell_list_list.at(x-1)->at(y-1)->checkUpdateNeed()){
-                manageCellUpdateList(m_cell_list_list.at(x-1)->at(y-1), true);
-            }
-            if(m_cell_list_list.at(x)->at(y-1)->checkUpdateNeed()){
-                manageCellUpdateList(m_cell_list_list.at(x)->at(y-1), true);
-            }
-            if(m_cell_list_list.at(x+1)->at(y-1)->checkUpdateNeed()){
-                manageCellUpdateList(m_cell_list_list.at(x+1)->at(y-1), true);
-            }
-
-            if(m_cell_list_list.at(x-1)->at(y)->checkUpdateNeed()){
-                manageCellUpdateList(m_cell_list_list.at(x-1)->at(y), true);
-            }
-            if(m_cell_list_list.at(x+1)->at(y)->checkUpdateNeed()){
-                manageCellUpdateList(m_cell_list_list.at(x+1)->at(y), true);
-            }
-
-            if(m_cell_list_list.at(x-1)->at(y+1)->checkUpdateNeed()){
-                manageCellUpdateList(m_cell_list_list.at(x-1)->at(y+1), true);
-            }
-            if(m_cell_list_list.at(x)->at(y+1)->checkUpdateNeed()){
-                manageCellUpdateList(m_cell_list_list.at(x)->at(y+1), true);
-            }
-            if(m_cell_list_list.at(x+1)->at(y+1)->checkUpdateNeed()){
-                manageCellUpdateList(m_cell_list_list.at(x+1)->at(y+1), true);
-            }
-        }
-        else{
-            int x = cell->cellX();
-            int y = cell->cellY();
-
-            if(!(x-1 < 0 || y-1 < 0)){
-                if(m_cell_list_list.at(x-1)->at(y-1)->checkUpdateNeed()){
-                    manageCellUpdateList(m_cell_list_list.at(x-1)->at(y-1), true);
-                }
-            }
-            if(!(y-1 < 0)){
-                if(m_cell_list_list.at(x)->at(y-1)->checkUpdateNeed()){
-                    manageCellUpdateList(m_cell_list_list.at(x)->at(y-1), true);
-                }
-            }
-            if(!(x+1 > m_cell_list_list.length() - 1 || y-1 < 0)){
-                if(m_cell_list_list.at(x+1)->at(y-1)->checkUpdateNeed()){
-                    manageCellUpdateList(m_cell_list_list.at(x+1)->at(y-1), true);
-                }
-            }
-
-            if(!(x-1 < 0)){
-                if(m_cell_list_list.at(x-1)->at(y)->checkUpdateNeed()){
-                    manageCellUpdateList(m_cell_list_list.at(x-1)->at(y), true);
-                }
-            }
-            if(!(x+1 > m_cell_list_list.length() - 1)){
-                if(m_cell_list_list.at(x+1)->at(y)->checkUpdateNeed()){
-                    manageCellUpdateList(m_cell_list_list.at(x+1)->at(y), true);
-                }
-            }
-
-            if(!(x-1 < 0 || y+1 > m_cell_list_list.at(0)->length() - 1)){
-                if(m_cell_list_list.at(x-1)->at(y+1)->checkUpdateNeed()){
-                    manageCellUpdateList(m_cell_list_list.at(x-1)->at(y+1), true);
-                }
-            }
-            if(!(y+1 > m_cell_list_list.at(0)->length() - 1)){
-                if(m_cell_list_list.at(x)->at(y+1)->checkUpdateNeed()){
-                    manageCellUpdateList(m_cell_list_list.at(x)->at(y+1), true);
-                }
-            }
-            if(!(x+1 > m_cell_list_list.length() - 1 || y+1 > m_cell_list_list.at(0)->length() - 1)){
-                if(m_cell_list_list.at(x+1)->at(y+1)->checkUpdateNeed()){
-                    manageCellUpdateList(m_cell_list_list.at(x+1)->at(y+1), true);
-                }
-            }
-        }
+        temp_list.at(i)->updateCellState();
+    }
+    temp_list = m_implicated_cells_list;
+    m_implicated_cells_list.clear();
+    for(int i = 0; i < temp_list.length(); i++){
+        temp_list.at(i)->updateCellState();
     }
 }

@@ -7,20 +7,20 @@
 class Cell : public QObject, public QGraphicsRectItem{
     Q_OBJECT
 public:
-    Cell(int my_x, int my_y, bool at_the_edge = false, qreal x = 0, qreal y = 0, qreal width = 10, qreal height = 10, QGraphicsItem *parent = nullptr, QObject *qobject_parent = nullptr);
+    Cell(int my_x, int my_y, qreal x = 0, qreal y = 0, qreal width = 10, qreal height = 10, QGraphicsItem *parent = nullptr, QObject *qobject_parent = nullptr);
 
-    bool isAtTheEdge();
-    int aliveValue();
+    void addNeighborCell(Cell *neighbor);
+    void checkNeighbors();
+    bool isAlive();
     int cellX();
     int cellY();
 
 public slots:
     void updateCellState();
-    void registerNeighborsStateChange(int alive_value);
-    bool checkUpdateNeed();
 
 signals:
-    void updateNeeded(Cell *cell, bool updateNeeded);
+    void cellIsAlive(Cell *cell, bool is_alive);
+    void cellIsImplicated(Cell *cell);
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
@@ -29,12 +29,12 @@ protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
 
 private:
-    int m_alive_value;
-    bool m_at_the_edge;
     int m_my_x;
     int m_my_y;
+    bool m_is_alive;
     int m_alive_neighbors_count;
     QColor m_color;
+    QList<Cell*> m_neighbor_cells;
 };
 
 #endif // CELL_H
