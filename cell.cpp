@@ -19,7 +19,7 @@ bool Cell::isAlive()
 {
     if(!m_is_alive){
         m_alive_neighbors_count++;
-        emit cellIsImplicated(this);
+        emit cellNeedsUpdate(this);
     }
     return m_is_alive;
 }
@@ -49,6 +49,7 @@ void Cell::checkNeighbors()
             }
         }
     }
+    emit cellNeedsUpdate(this);
 }
 
 void Cell::updateCellState()

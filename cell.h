@@ -20,7 +20,7 @@ public slots:
 
 signals:
     void cellIsAlive(Cell *cell, bool is_alive);
-    void cellIsImplicated(Cell *cell);
+    void cellNeedsUpdate(Cell *cell);
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;

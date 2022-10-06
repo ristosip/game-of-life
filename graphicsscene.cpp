@@ -21,7 +21,7 @@ void GraphicsScene::populateScene(int columns, int rows)
             cellList->append(cell);
 
             connect(cell, &Cell::cellIsAlive, this, &GraphicsScene::manageAliveCellList);
-            connect(cell, &Cell::cellIsImplicated, this, &GraphicsScene::manageImplicatedCellList);
+            connect(cell, &Cell::cellNeedsUpdate, this, &GraphicsScene::manageCellUpdateList);
         }
     }
 
@@ -46,7 +46,7 @@ void GraphicsScene::clearScene()
     }
     m_cell_list_list.clear();   
     m_alive_cells_list.clear();
-    m_implicated_cells_list.clear();
+    m_cells_update_list.clear();
 }
 
 void GraphicsScene::linkNeighbors(Cell *cell, int columns, int rows)
@@ -74,10 +74,10 @@ void GraphicsScene::manageAliveCellList(Cell* cell, bool isAlive)
     }
 }
 
-void GraphicsScene::manageImplicatedCellList(Cell* cell)
+void GraphicsScene::manageCellUpdateList(Cell* cell)
 {
-    if(!m_implicated_cells_list.contains(cell))
-        m_implicated_cells_list.append(cell);
+    if(!m_cells_update_list.contains(cell))
+        m_cells_update_list.append(cell);
 }
 
 void GraphicsScene::advanceGame()
@@ -87,11 +87,8 @@ void GraphicsScene::advanceGame()
     for(int i = 0; i < temp_list.length(); i++){
         temp_list.at(i)->checkNeighbors();
     }
-    for(int i = 0; i < temp_list.length(); i++){
-        temp_list.at(i)->updateCellState();
-    }
-    temp_list = m_implicated_cells_list;
-    m_implicated_cells_list.clear();
+    temp_list = m_cells_update_list;
+    m_cells_update_list.clear();
     for(int i = 0; i < temp_list.length(); i++){
         temp_list.at(i)->updateCellState();
     }
