@@ -12,15 +12,17 @@ void GraphicsScene::populateScene(int columns, int rows)
     m_initializing = true;
     clearScene();
 
+    Messenger *messenger = new Messenger(this);
+    connect(messenger, &Messenger::cellIsAlive, this, &GraphicsScene::manageAliveCellList);
+
     for(int i = 0; i < columns; i++){
         QList<Cell*> *cellList = new QList<Cell*>();
         m_cell_list_list.append(cellList);
         for(int j = 0; j < rows; j++){
-            Cell *cell = new Cell(i, j);
+            Cell *cell = new Cell(messenger, i, j);
             addItem(cell);
             cell->setPos(10 * i, 10 * j);
-            cellList->append(cell);
-            connect(cell, &Cell::cellIsAlive, this, &GraphicsScene::manageAliveCellList);
+            cellList->append(cell);          
         }
     }
 

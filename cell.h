@@ -4,10 +4,21 @@
 #include <QGraphicsRectItem>
 #include <QColor>
 
+class Cell;
+
+class Messenger : public QObject{
+    Q_OBJECT
+public:
+    Messenger(QObject *parent = nullptr) : QObject(parent){}
+    void relayCellIsAliveMessage(Cell *cell, bool is_alive){ emit cellIsAlive(cell, is_alive); }
+signals:
+    void cellIsAlive(Cell *cell, bool is_alive);
+};
+
 class Cell : public QObject, public QGraphicsRectItem{
     Q_OBJECT
 public:
-    Cell(int my_x, int my_y, qreal x = 0, qreal y = 0, qreal width = 10, qreal height = 10, QGraphicsItem *parent = nullptr, QObject *qobject_parent = nullptr);
+    Cell(Messenger *messenger, int my_x, int my_y, qreal x = 0, qreal y = 0, qreal width = 10, qreal height = 10, QGraphicsItem *parent = nullptr, QObject *qobject_parent = nullptr);
 
     void nudge();
     bool isAlive();
@@ -19,7 +30,7 @@ public slots:
     void updateCellState();
 
 signals:
-    void cellIsAlive(Cell *cell, bool is_alive);
+   //void cellIsAlive(Cell *cell, bool is_alive);
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
@@ -35,6 +46,7 @@ private:
     int m_alive_neighbors_count;
     QColor m_color;
     QList<Cell*> m_neighbor_cells;
+    Messenger *m_messenger;
 };
 
 #endif // CELL_H

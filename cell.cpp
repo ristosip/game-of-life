@@ -3,8 +3,10 @@
 #include <QStyleOptionGraphicsItem>
 #include <QDebug>
 
-Cell::Cell(int my_x, int my_y, qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent, QObject *qobject_parent) : QObject(qobject_parent), QGraphicsRectItem(x, y, width, height, parent)
+Cell::Cell(Messenger *messenger, int my_x, int my_y, qreal x, qreal y, qreal width, qreal height, QGraphicsItem *parent, QObject *qobject_parent) : QObject(qobject_parent), QGraphicsRectItem(x, y, width, height, parent)
 {
+    m_messenger = messenger;
+
     m_my_x = my_x;
     m_my_y = my_y;
 
@@ -96,12 +98,14 @@ void Cell::mousePressEvent(QGraphicsSceneMouseEvent *event)
     if(m_color.name() == "#000000" || m_color.name() == "#00008b"){
         m_color.setNamedColor("#d3d3d3");
         m_is_alive = false;
-        emit cellIsAlive(this, m_is_alive);
+        //emit cellIsAlive(this, m_is_alive);
+        m_messenger->relayCellIsAliveMessage(this, m_is_alive);
     }
     else if(m_color.name() == "#808080" || m_color.name() == "#d3d3d3"){
         m_color.setNamedColor("#000000");       
         m_is_alive = true;
-        emit cellIsAlive(this, m_is_alive);
+        //emit cellIsAlive(this, m_is_alive);
+        m_messenger->relayCellIsAliveMessage(this, m_is_alive);
     }
 
     update(boundingRect());
