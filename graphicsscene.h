@@ -18,9 +18,7 @@ public slots:
 
 private:
     void clearScene();
-    void linkNeighbors(Cell *cell, int columns_max, int rows_max);
-
-private slots:
+    void nudgeNeighbors(Cell *cell);
     void manageAliveCellList(Cell* cell, bool isAlive);
     void manageCellUpdateList(Cell* cell);
 

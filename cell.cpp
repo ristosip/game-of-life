@@ -13,15 +13,17 @@ Cell::Cell(int my_x, int my_y, qreal x, qreal y, qreal width, qreal height, QGra
 
     m_alive_neighbors_count = 0;
     m_is_alive = false;
+    m_has_been_nudged = false;
 }
 
 bool Cell::isAlive()
 {
-    if(!m_is_alive){
-        m_alive_neighbors_count++;
-        emit cellNeedsUpdate(this);
-    }
     return m_is_alive;
+}
+
+bool Cell::hasBeenNudged()
+{
+    return m_has_been_nudged;
 }
 
 int Cell::cellX()
@@ -34,22 +36,10 @@ int Cell::cellY()
     return m_my_y;
 }
 
-void Cell::addNeighborCell(Cell *neighbor)
+void Cell::nudge()
 {
-    if(neighbor != nullptr)
-        m_neighbor_cells.append(neighbor);
-}
-
-void Cell::checkNeighbors()
-{
-    if(!m_neighbor_cells.isEmpty()){
-        for(int i = 0; i < m_neighbor_cells.length(); i++){
-            if(m_neighbor_cells.at(i)->isAlive()){
-                m_alive_neighbors_count++;
-            }
-        }
-    }
-    emit cellNeedsUpdate(this);
+    m_alive_neighbors_count++;
+    m_has_been_nudged = true;
 }
 
 void Cell::updateCellState()
@@ -63,13 +53,13 @@ void Cell::updateCellState()
 
     if(m_is_alive){
         m_color.setNamedColor("#000000");
-        emit cellIsAlive(this, m_is_alive);
     }
     else{
         m_color.setNamedColor("#d3d3d3");
     }
 
     m_alive_neighbors_count = 0;
+    m_has_been_nudged = false;
     update(boundingRect());
 }
 

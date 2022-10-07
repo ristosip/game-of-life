@@ -9,9 +9,9 @@ class Cell : public QObject, public QGraphicsRectItem{
 public:
     Cell(int my_x, int my_y, qreal x = 0, qreal y = 0, qreal width = 10, qreal height = 10, QGraphicsItem *parent = nullptr, QObject *qobject_parent = nullptr);
 
-    void addNeighborCell(Cell *neighbor);
-    void checkNeighbors();
+    void nudge();
     bool isAlive();
+    bool hasBeenNudged();
     int cellX();
     int cellY();
 
@@ -20,7 +20,6 @@ public slots:
 
 signals:
     void cellIsAlive(Cell *cell, bool is_alive);
-    void cellNeedsUpdate(Cell *cell);
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
@@ -32,6 +31,7 @@ private:
     int m_my_x;
     int m_my_y;
     bool m_is_alive;
+    bool m_has_been_nudged;
     int m_alive_neighbors_count;
     QColor m_color;
     QList<Cell*> m_neighbor_cells;
